@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Controle de Validade do Estoque</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Alerta de Validade do Estoque</h1>
+      <p>Evite prejuízos identificando mercadorias prestes a vencer.</p>
+    </header>
+
+    <main>
+      <!-- Formulário de Cadastro -->
+      <section class="card">
+        <h3>Cadastrar Produto</h3>
+        
+        <label for="nomeProduto">Nome do Produto / Marca:</label>
+        <input type="text" id="nomeProduto" placeholder="Ex.: Leite Integral 1L">
+
+        <div class="grid-2">
+          <div>
+            <label for="qtdProduto">Quantidade:</label>
+            <input type="number" id="qtdProduto" value="1" min="1">
+          </div>
+          <div>
+            <label for="dataVencimento">Vencimento:</label>
+            <input type="date" id="dataVencimento">
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="cadastrarProduto()">Salvar Produto</button>
+      </section>
+
+      <!-- Lista do Estoque -->
+      <section class="card">
+        <h3>Produtos em Estoque</h3>
+        <div id="listaEstoque" class="lista-box">
+          <p class="muted">Nenhum produto cadastrado.</p>
+        </div>
+      </section>
+
+      <!-- Relatórios Rápidos -->
+      <section class="card">
+        <h3>Relatório para WhatsApp</h3>
+        <p class="sub-label">Gere o resumo das mercadorias que precisam de atenção:</p>
+        
+        <div class="grid-2">
+          <button class="btn-relatorio" onclick="gerarRelatorio(7)">Próximos 7 dias</button>
+          <button class="btn-relatorio" onclick="gerarRelatorio(30)">Próximos 30 dias</button>
+        </div>
+      </section>
+
+      <!-- Glossário Obrigatório -->
+      <details class="card" open>
+        <summary><b>Como usar & Glossário simples</b></summary>
+        <div class="help-section">
+          <h4>Como usar:</h4>
+          <ol>
+            <li><b>Cadastre o lote:</b> Digite o nome da mercadoria, a quantidade na prateleira e a data de validade que está na embalagem.</li>
+            <li><b>Observe os alertas de cor:</b>
+              <ul>
+                <li>🔴 <b>Vermelho:</b> Produto já vencido ou que vence nos próximos 3 dias. Faça promoção rápida!</li>
+                <li>🟡 <b>Amarelo:</b> Vence nos próximos 7 dias. Fique atento.</li>
+                <li>🟢 <b>Verde:</b> Validade tranquila.</li>
+              </ul>
+            </li>
+            <li><b>Gere relatórios:</b> Clique no botão de relatório para enviar a lista de prioridades no WhatsApp do seu sócio ou equipe.</li>
+          </ol>
+
+          <hr>
+
+          <h4>Glossário (Gestão de Prateleira):</h4>
+          <ul>
+            <li><b>Controle de Estoque:</b> Acompanhamento da quantidade de produtos guardados ou expostos à venda.</li>
+            <li><b>Primeiro que Vence, Primeiro que Sai (PVPS):</b> A regra de colocar na frente da prateleira os produtos que vão vencer antes para serem vendidos primeiro.</li>
+            <li><b>Margem de Perda:</b> O prejuízo financeiro quando um alimento estraga e precisa ser descartado.</li>
+            <li><b>Relatório Diário/Semanal:</b> Um resumo rápido que mostra o que precisa ser vendido com urgência naquele dia ou semana.</li>
+          </ul>
+        </div>
+      </details>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

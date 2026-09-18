@@ -1,0 +1,122 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f5ef;
+  color: #26352d;
+  padding: 16px;
+}
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+header h1 {
+  color: #806322;
+  margin-bottom: 4px;
+}
+header p {
+  color: #687568;
+  font-size: 14px;
+  margin-top: 0;
+}
+.card {
+  background: #fff;
+  border: 1px solid #eadfe5;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+h3 {
+  margin: 0 0 10px 0;
+  color: #806322;
+}
+.sub-label {
+  font-size: 13px;
+  color: #687568;
+  margin-top: -6px;
+}
+label {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 10px;
+}
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd7ca;
+  font-size: 15px;
+  margin-top: 4px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: #806322;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 14px;
+}
+.btn-relatorio {
+  padding: 10px;
+  background: #25d366;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+}
+.item-estoque {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 6px solid #ccc;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: #fafafa;
+}
+.status-alerta { border-color: #ff4d4d; background: #fff0f0; }
+.status-atencao { border-color: #f1c40f; background: #fefde8; }
+.status-ok { border-color: #2ecc71; }
+
+.btn-remover {
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+details summary {
+  cursor: pointer;
+  color: #26352d;
+  font-size: 15px;
+}
+.help-section {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.help-section h4 {
+  margin: 10px 0 6px 0;
+  color: #806322;
+}
+.help-section ul, .help-section ol {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+.muted {
+  color: #777;
+}
