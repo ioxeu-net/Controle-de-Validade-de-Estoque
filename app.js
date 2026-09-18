@@ -1,187 +1,44 @@
-const KEY_ESTOQUE = 'estoque_validade_db';
-let estoque = JSON.parse(localStorage.getItem(KEY_ESTOQUE) || '[]');
-let html5QrCode = null;
+const KEYS={estoque:'estoque_validade_db',catalogo:'catalogo_produtos_db',fiados:'vendas_fiadas_db',backup:'backup_aviso_db'};
+let estoque=ler(KEYS.estoque,[]), catalogo=ler(KEYS.catalogo,{}), fiados=ler(KEYS.fiados,[]), html5QrCode=null;
 
-window.onload = () => {
-  renderEstoque();
-  configurarLeitorUSB();
-};
+function ler(chave, padrao){try{return JSON.parse(localStorage.getItem(chave)||JSON.stringify(padrao))}catch{return padrao}}
+function salvar(){localStorage.setItem(KEYS.estoque,JSON.stringify(estoque));localStorage.setItem(KEYS.catalogo,JSON.stringify(catalogo));localStorage.setItem(KEYS.fiados,JSON.stringify(fiados));atualizarStatus()}
+function escapar(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function moeda(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dataBR(v){return v?new Date(v+'T00:00:00').toLocaleDateString('pt-BR'):'--'}
+function hojeISO(){return new Date().toISOString().slice(0,10)}
 
-// -------------------------------------------------------------
-// INTEGRAÇÃO LEITOR DE CÓDIGO DE BARRAS / CÂMARA
-// -------------------------------------------------------------
+window.onload=()=>{renderEstoque();renderFiados();configurarLeitorUSB();mostrarAvisoBackup();atualizarStatus()};
+function configurarLeitorUSB(){document.querySelector('#nomeProduto').addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();buscarProdutoPorCodigo(e.target.value.trim())}})}
+function iniciarCamara(){const r=document.querySelector('#reader');r.hidden=false;html5QrCode=new Html5Qrcode('reader');html5QrCode.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:150}},texto=>{pararCamara();document.querySelector('#nomeProduto').value=texto;buscarProdutoPorCodigo(texto)},()=>{}).catch(()=>{alert('Não foi possível abrir a câmera. Confira a permissão do celular.');r.hidden=true})}
+function pararCamara(){if(html5QrCode){html5QrCode.stop().then(()=>document.querySelector('#reader').hidden=true).catch(()=>{})}}
+function buscarProdutoPorCodigo(codigo){if(!codigo)return;if(/^\d+$/.test(codigo)){const conhecido=catalogo[codigo];if(conhecido){document.querySelector('#nomeProduto').value=conhecido;mostrarProduto(`Produto encontrado: ${conhecido}`);return}document.querySelector('#nomeProduto').value='';document.querySelector('#nomeProduto').placeholder=`Produto novo (${codigo}). Digite o nome`;document.querySelector('#nomeProduto').dataset.codigo=codigo;mostrarProduto('Produto novo. Digite o nome e salve para guardar este código.')} }
+function mostrarProduto(texto){const el=document.querySelector('#mensagemProduto');el.textContent=texto;el.hidden=false}
+function cadastrarProduto(){const campo=document.querySelector('#nomeProduto'),nome=campo.value.trim(),qtd=Number(document.querySelector('#qtdProduto').value),dataValidade=document.querySelector('#dataVencimento').value,codigo=campo.dataset.codigo||(/^[0-9]+$/.test(nome)?nome:'');if(!nome||!qtd||!dataValidade){alert('Informe o nome, a quantidade e a data de vencimento.');return}if(codigo){catalogo[codigo]=nome}estoque.push({id:Date.now(),codigo,nome,qtd,dataValidade});salvar();campo.value='';campo.dataset.codigo='';campo.placeholder='Digite ou escaneie o código';document.querySelector('#qtdProduto').value='1';document.querySelector('#dataVencimento').value='';document.querySelector('#mensagemProduto').hidden=true;renderEstoque();alert('Produto salvo com sucesso.')}
+function obterStatusValidade(data){const hoje=new Date();hoje.setHours(0,0,0,0);const venc=new Date(data+'T00:00:00'),dias=Math.ceil((venc-hoje)/86400000);if(dias<=3)return{classe:'status-alerta',texto:dias<0?'VENCIDO!':`Vence em ${dias} dia(s)!`};if(dias<=7)return{classe:'status-atencao',texto:`Vence em ${dias} dias`};return{classe:'status-ok',texto:`Vence em ${dias} dias`}}
+function renderEstoque(){const c=document.querySelector('#listaEstoque');if(!estoque.length){c.innerHTML='<p class="muted">Nenhum produto cadastrado no estoque.</p>';return}estoque.sort((a,b)=>a.dataValidade.localeCompare(b.dataValidade));c.innerHTML=estoque.map(p=>{const s=obterStatusValidade(p.dataValidade);return `<div class="item-estoque ${s.classe}"><div><b>${escapar(p.qtd)}x ${escapar(p.nome)}</b><br><small>Vencimento: ${dataBR(p.dataValidade)} — <b>${s.texto}</b></small></div><button class="btn-remover" onclick="removerProduto(${p.id})">Apagar</button></div>`}).join('')}
+function removerProduto(id){if(!confirm('Tem certeza que deseja apagar este produto?'))return;estoque=estoque.filter(p=>p.id!==id);salvar();renderEstoque()}
 
-// Suporte para Leitor USB / Bluetooth (detecta quando o leitor envia o 'Enter')
-function configurarLeitorUSB() {
-  const inputNome = document.querySelector('#nomeProduto');
-  inputNome.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const codigo = inputNome.value.trim();
-      if (codigo) buscarProdutoPorCodigo(codigo);
-    }
-  });
-}
+function cadastrarFiado(){const nome=document.querySelector('#clienteNome').value.trim(),telefone=document.querySelector('#clienteTelefone').value.trim(),itens=document.querySelector('#fiadoItens').value.trim(),total=numero(document.querySelector('#fiadoTotal').value),vencimento=document.querySelector('#fiadoVencimento').value;if(!nome||!itens||!total||!vencimento){alert('Informe o nome, os produtos, o valor total e a data de pagamento.');return}fiados.push({id:Date.now(),cliente:nome,telefone,itens,total,pago:0,dataCompra:hojeISO(),vencimento,status:'pendente'});salvar();['clienteNome','clienteTelefone','fiadoItens','fiadoTotal','fiadoVencimento'].forEach(id=>document.querySelector('#'+id).value='');renderFiados();alert('Venda fiada guardada.')}
+function numero(v){return Number(String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'))||0}
+function mostrarContas(filtro){renderFiados(filtro)}
+function renderFiados(filtro='todas'){const c=document.querySelector('#listaFiados'),lista=fiados.filter(f=>filtro==='pendentes'?f.pago<f.total:true);if(!lista.length){c.innerHTML='<p class="muted">Nenhuma conta encontrada.</p>';return}c.innerHTML=lista.slice().sort((a,b)=>a.vencimento.localeCompare(b.vencimento)).map(f=>{const falta=Math.max(0,f.total-f.pago),atrasada=falta>0&&f.vencimento<hojeISO();return `<div class="item-fiado ${atrasada?'status-alerta':''}"><div><b>${escapar(f.cliente)}</b><br><small>${escapar(f.itens).replace(/\n/g,'<br>')}<br>Total: <b>${moeda(f.total)}</b> | Pago: ${moeda(f.pago)} | Falta: <b>${moeda(falta)}</b><br>Pagamento: ${dataBR(f.vencimento)} ${falta?'':'— PAGO'}</small></div><div class="item-actions">${falta?`<button class="btn-pago" onclick="marcarPago(${f.id})">Marcar como pago</button>`:''}<button class="btn-msg" onclick="prepararRecibo(${f.id})">Enviar recibo</button><button class="btn-imprimir" onclick="imprimirRecibo(${f.id})">Imprimir</button><button class="btn-remover" onclick="removerFiado(${f.id})">Apagar</button></div></div>`}).join('')}
+function marcarPago(id){const f=fiados.find(x=>x.id===id);if(!f)return;const valor=prompt(`Quanto foi pago?\nFalta ${moeda(f.total-f.pago)}`,String(f.total-f.pago).replace('.',','));if(valor===null)return;f.pago=Math.min(f.total,f.pago+numero(valor));salvar();renderFiados();if(f.pago>=f.total&&confirm('Conta quitada. Deseja preparar uma mensagem de agradecimento?'))abrirWhatsApp(`Olá, ${f.cliente}! Confirmamos o recebimento do pagamento. Muito obrigado por ser nosso cliente!`)}
+function removerFiado(id){if(!confirm('Tem certeza que deseja apagar esta venda?'))return;fiados=fiados.filter(f=>f.id!==id);salvar();renderFiados()}
+function mensagemFiado(f){const falta=Math.max(0,f.total-f.pago),dias=Math.ceil((new Date(f.vencimento+'T00:00:00')-new Date(new Date().toDateString()))/86400000);let prazo=dias>0?`Faltam ${dias} dias para o vencimento`:dias===0?'Sua conta vence hoje':`Sua conta está vencida há ${Math.abs(dias)} dia(s)`;return `Olá, ${f.cliente}!\n\n${prazo} referente à sua compra de ${moeda(f.total)}.\nValor que falta pagar: ${moeda(falta)}.\nData combinada: ${dataBR(f.vencimento)}.\n\nSe já realizou o pagamento, por favor, desconsidere.\nObrigado por ser nosso cliente!`}
+function recibo(f){return `RECIBO DE COMPRA\n\nCliente: ${f.cliente}\nData da compra: ${dataBR(f.dataCompra)}\nPagamento combinado: ${dataBR(f.vencimento)}\n\nProdutos:\n${f.itens}\n\nTotal: ${moeda(f.total)}\nPago: ${moeda(f.pago)}\nFalta pagar: ${moeda(Math.max(0,f.total-f.pago))}\n\nObrigado por ser nosso cliente!`}
+function prepararRecibo(id){const f=fiados.find(x=>x.id===id);if(!f)return;const texto=recibo(f);if(confirm('OK para enviar o recibo da compra.\n\n'+texto))abrirWhatsApp(texto)}
+function gerarRelatorioFiados(){const lista=fiados.filter(f=>f.pago<f.total);if(!lista.length){alert('Não há contas pendentes.');return}const texto='CONTAS PENDENTES\n\n'+lista.map(f=>`${f.cliente} — falta ${moeda(f.total-f.pago)} — pagamento: ${dataBR(f.vencimento)}`).join('\n');if(confirm(texto+'\n\nDeseja abrir o WhatsApp?'))abrirWhatsApp(texto)}
+function abrirWhatsApp(texto){window.open('https://api.whatsapp.com/send?text='+encodeURIComponent(texto),'_blank')}
+function mostrarHistorico(){const termo=document.querySelector('#buscaCliente').value.trim().toLowerCase(),c=document.querySelector('#historicoCliente');if(!termo){c.innerHTML='<p class="muted">Digite o nome do cliente.</p>';return}const lista=fiados.filter(f=>f.cliente.toLowerCase().includes(termo));if(!lista.length){c.innerHTML='<p class="muted">Nenhuma compra encontrada.</p>';return}const total=lista.reduce((s,f)=>s+f.total,0);c.innerHTML=`<p><b>${lista.length} compra(s)</b> — Total consumido: <b>${moeda(total)}</b></p>`+lista.map(f=>`<div class="item-fiado"><div>${dataBR(f.dataCompra)} — ${escapar(f.itens).replace(/\n/g,'<br>')}<br>Total: ${moeda(f.total)} — ${f.pago>=f.total?'Pago':'Em aberto'}</div><button class="btn-imprimir" onclick="imprimirRecibo(${f.id})">Imprimir</button></div>`).join('')}
+function gerarRelatorio(dias){const lista=estoque.filter(p=>{const d=Math.ceil((new Date(p.dataValidade+'T00:00:00')-new Date(new Date().toDateString()))/86400000);return d<=dias});if(!lista.length){alert(`Nenhum produto vencendo nos próximos ${dias} dias.`);return}const texto=`RELATÓRIO DE VENCIMENTOS (${dias} DIAS)\n\n`+lista.map(p=>`${p.qtd}x ${p.nome} — ${dataBR(p.dataValidade)}`).join('\n');if(confirm(texto+'\n\nDeseja abrir o WhatsApp?'))abrirWhatsApp(texto)}
+function imprimirRelatorioEstoque(){imprimirPagina('Lista de produtos\n\n'+estoque.map(p=>`${p.qtd}x ${p.nome} — vence em ${dataBR(p.dataValidade)}`).join('\n'))}
+function imprimirRecibo(id){const f=fiados.find(x=>x.id===id);if(f)imprimirPagina(recibo(f))}
+function imprimirPagina(texto){const w=window.open('','_blank');w.document.write(`<pre style="font:16px Arial;white-space:pre-wrap;padding:20px">${escapar(texto)}</pre><script>window.print()<\\/script>`);w.document.close()}
 
-// Inicia a câmara do telemóvel/PC
-function iniciarCamara() {
-  const readerDiv = document.querySelector('#reader');
-  readerDiv.style.display = 'block';
-
-  html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    { facingMode: "environment" }, // Usa a câmara traseira no telemóvel
-    { fps: 10, qrbox: { width: 250, height: 150 } },
-    (decodedText) => {
-      // Quando lê o código com sucesso:
-      document.querySelector('#nomeProduto').value = decodedText;
-      pararCamara();
-      buscarProdutoPorCodigo(decodedText);
-    },
-    (errorMessage) => {
-      // Ignores erros de leitura contínua do frame
-    }
-  ).catch(err => {
-    alert('Erro ao abrir a câmara: ' + err);
-    readerDiv.style.display = 'none';
-  });
-}
-
-// Para a câmara
-function pararCamara() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      document.querySelector('#reader').style.display = 'none';
-    }).catch(err => console.error(err));
-  }
-}
-
-// Procura o nome do produto através do código EAN numa API gratuita
-async function buscarProdutoPorCodigo(codigo) {
-  // Se não for um código numérico (ex: se o utilizador escreveu o nome manualmente), ignora a busca
-  if (!/^\d+$/.test(codigo)) return;
-
-  const inputNome = document.querySelector('#nomeProduto');
-  inputNome.value = 'A procurar produto...';
-
-  try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${codigo}.json`);
-    const data = await res.json();
-
-    if (data.status === 1 && data.product.product_name) {
-      const nomeEncontrado = data.product.product_name;
-      const marca = data.product.brands ? ` (${data.product.brands})` : '';
-      inputNome.value = `${nomeEncontrado}${marca}`;
-    } else {
-      inputNome.value = codigo; // Mantém o código se não encontrar o nome
-      alert('Produto não localizado na base de dados. Pode preencher o nome manualmente.');
-    }
-  } catch (err) {
-    inputNome.value = codigo;
-  }
-}
-
-// -------------------------------------------------------------
-// FUNÇÕES ORIGINAIS DO SISTEMA
-// -------------------------------------------------------------
-
-function cadastrarProduto() {
-  const nome = document.querySelector('#nomeProduto').value.trim();
-  const qtd = Number(document.querySelector('#qtdProduto').value);
-  const dataValidade = document.querySelector('#dataVencimento').value;
-
-  if (!nome || !qtd || !dataValidade) {
-    alert('Por favor, informe o nome, quantidade e data de vencimento.');
-    return;
-  }
-
-  estoque.push({ id: Date.now(), nome, qtd, dataValidade });
-  salvarDB();
-
-  document.querySelector('#nomeProduto').value = '';
-  document.querySelector('#qtdProduto').value = '1';
-  document.querySelector('#dataVencimento').value = '';
-
-  renderEstoque();
-}
-
-function removerProduto(id) {
-  estoque = estoque.filter(p => p.id !== id);
-  salvarDB();
-  renderEstoque();
-}
-
-function salvarDB() {
-  localStorage.setItem(KEY_ESTOQUE, JSON.stringify(estoque));
-}
-
-function obterStatusValidade(dataIso) {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const vencimento = new Date(dataIso + 'T00:00:00');
-  const diffDias = Math.ceil((vencimento - hoje) / (1000 * 60 * 60 * 24));
-
-  if (diffDias <= 3) return { classe: 'status-alerta', texto: diffDias < 0 ? 'VENCIDO!' : `Vence em ${diffDias} dia(s)!` };
-  if (diffDias <= 7) return { classe: 'status-atencao', texto: `Vence em ${diffDias} dias` };
-  return { classe: 'status-ok', texto: `Vence em ${diffDias} dias` };
-}
-
-function renderEstoque() {
-  const container = document.querySelector('#listaEstoque');
-
-  if (estoque.length === 0) {
-    container.innerHTML = '<p class="muted">Nenhum produto cadastrado no estoque.</p>';
-    return;
-  }
-
-  estoque.sort((a, b) => new Date(a.dataValidade) - new Date(b.dataValidade));
-
-  container.innerHTML = estoque.map(p => {
-    const status = obterStatusValidade(p.dataValidade);
-    const dataFmt = new Date(p.dataValidade + 'T00:00:00').toLocaleDateString('pt-BR');
-
-    return `
-      <div class="item-estoque ${status.classe}">
-        <div>
-          <b>${p.qtd}x ${p.nome}</b><br>
-          <small>Vencimento: ${dataFmt} (<b>${status.texto}</b>)</small>
-        </div>
-        <button class="btn-remover" onclick="removerProduto(${p.id})">X</button>
-      </div>
-    `;
-  }).join('');
-}
-
-function gerarRelatorio(diasLimite) {
-  if (estoque.length === 0) {
-    alert('Nenhum produto para gerar relatório.');
-    return;
-  }
-
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const filtrados = estoque.filter(p => {
-    const venc = new Date(p.dataValidade + 'T00:00:00');
-    const diffDias = Math.ceil((venc - hoje) / (1000 * 60 * 60 * 24));
-    return diffDias <= diasLimite;
-  });
-
-  if (filtrados.length === 0) {
-    alert(`Nenhum produto vencendo nos próximos ${diasLimite} dias!`);
-    return;
-  }
-
-  let texto = `🚨 *RELATÓRIO DE VENCIMENTOS (${diasLimite} DIAS)*\n----------------------------------\n`;
-
-  filtrados.forEach(p => {
-    const dataFmt = new Date(p.dataValidade + 'T00:00:00').toLocaleDateString('pt-BR');
-    texto += `• *${p.qtd}x ${p.nome}* | Vence: ${dataFmt}\n`;
-  });
-
-  texto += `----------------------------------\n📌 *Ação recomendada:* Colocar em promoção ou destacar na prateleira!`;
-
-  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
-  window.open(url, '_blank');
-}
+function dadosBackup(){return{versao:1,data: new Date().toISOString(),estoque,catalogo,fiados}}
+function fazerBackup(){const blob=new Blob([JSON.stringify(dadosBackup(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`copia-de-seguranca-${hojeISO()}.json`;a.click();localStorage.setItem(KEYS.backup,new Date().toISOString());atualizarStatus();alert('Cópia de segurança criada. Guarde o arquivo em local seguro.')}
+function restaurarBackup(){document.querySelector('#arquivoBackup').click()}
+document.querySelector('#arquivoBackup')?.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const b=JSON.parse(reader.result);if(!b.estoque||!b.catalogo||!b.fiados)throw Error();if(!confirm('Usar esta cópia? Os dados atuais serão substituídos.'))return;estoque=b.estoque;catalogo=b.catalogo;fiados=b.fiados;salvar();renderEstoque();renderFiados();alert('Cópia restaurada com sucesso.')}catch{alert('Este arquivo não é uma cópia válida.')}};reader.readAsText(file)})
+function mostrarAvisoBackup(){if(!localStorage.getItem(KEYS.backup)){const e=document.querySelector('#avisoBackup');e.hidden=false;e.innerHTML='<b>Antes de começar:</b> seus dados estão somente neste aparelho. Faça uma <b>cópia de segurança</b> para evitar a perda das informações. <button class="btn-light" onclick="fazerBackup()">Guardar cópia</button>'}}
+function atualizarStatus(){const s=document.querySelector('#statusApp');if(!s)return;s.textContent=localStorage.getItem(KEYS.backup)?'Cópia de segurança guardada neste aparelho.':'Cópia de segurança ainda não criada.'}
