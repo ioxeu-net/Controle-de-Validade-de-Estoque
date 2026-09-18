@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Controle de Validade do Estoque</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Biblioteca para leitura de Código de Barras via Câmera -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
   <div class="container">
@@ -18,8 +20,14 @@
       <section class="card">
         <h3>Cadastrar Produto</h3>
         
-        <label for="nomeProduto">Nome do Produto / Marca:</label>
-        <input type="text" id="nomeProduto" placeholder="Ex.: Leite Integral 1L">
+        <label for="nomeProduto">Nome do Produto / Marca / Código:</label>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="text" id="nomeProduto" placeholder="Digite ou bipe o código" autofocus style="flex: 1;">
+          <button type="button" class="btn-primary" onclick="iniciarCamara()" style="width: auto; padding: 0 12px;">📷 Escanear</button>
+        </div>
+
+        <!-- Div para exibição do leitor de câmera -->
+        <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto 15px auto; display: none;"></div>
 
         <div class="grid-2">
           <div>
@@ -60,7 +68,7 @@
         <div class="help-section">
           <h4>Como usar:</h4>
           <ol>
-            <li><b>Cadastre o lote:</b> Digite o nome da mercadoria, a quantidade na prateleira e a data de validade que está na embalagem.</li>
+            <li><b>Cadastre o lote:</b> Digite/bipe o nome da mercadoria, a quantidade na prateleira e a data de validade que está na embalagem.</li>
             <li><b>Observe os alertas de cor:</b>
               <ul>
                 <li>🔴 <b>Vermelho:</b> Produto já vencido ou que vence nos próximos 3 dias. Faça promoção rápida!</li>
