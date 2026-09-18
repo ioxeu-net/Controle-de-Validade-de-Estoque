@@ -3,91 +3,106 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Controle de Validade do Estoque</title>
+  <meta name="theme-color" content="#806322">
+  <title>Alerta de Validade do Estoque</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Biblioteca para leitura de Código de Barras via Câmera -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
   <div class="container">
     <header>
-            <img src="logo.png" alt="Logo" style="max-width: 180px; display: block; margin: 0 auto 15px auto;">
       <h1>Alerta de Validade do Estoque</h1>
-      <p>Evite prejuízos identificando mercadorias prestes a vencer.</p>
+      <p>Controle seus produtos, vendas e pagamentos com simplicidade.</p>
     </header>
 
+    <div id="avisoBackup" class="notice warning" hidden></div>
+    <div id="statusApp" class="status-line">Cópia de segurança ainda não criada.</div>
+
     <main>
-      <!-- Formulário de Cadastro -->
-      <section class="card">
-        <h3>Cadastrar Produto</h3>
-        
-        <label for="nomeProduto">Nome do Produto / Marca / Código:</label>
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <input type="text" id="nomeProduto" placeholder="Digite ou bipe o código" autofocus style="flex: 1;">
-          <button type="button" class="btn-primary" onclick="iniciarCamara()" style="width: auto; padding: 0 12px;">📷 Escanear</button>
+      <section class="card backup-card">
+        <h3>Cópia de segurança</h3>
+        <p class="sub-label">Uma cópia ajuda a recuperar seus dados se o celular for perdido, quebrar ou tiver as informações apagadas.</p>
+        <div class="button-row">
+          <button class="btn-secondary" onclick="fazerBackup()">Guardar uma cópia agora</button>
+          <button class="btn-light" onclick="restaurarBackup()">Usar uma cópia salva</button>
         </div>
+        <input id="arquivoBackup" type="file" accept="application/json" hidden>
+      </section>
 
-        <!-- Div para exibição do leitor de câmera -->
-        <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto 15px auto; display: none;"></div>
-
+      <section class="card">
+        <h3>Cadastrar produto</h3>
+        <label for="nomeProduto">Nome do produto ou código:</label>
+        <div class="input-row">
+          <input type="text" id="nomeProduto" placeholder="Digite ou escaneie o código" autofocus>
+          <button type="button" class="btn-primary compact" onclick="iniciarCamara()">Escanear</button>
+        </div>
+        <div id="reader" hidden></div>
+        <div id="mensagemProduto" class="hint" hidden></div>
         <div class="grid-2">
-          <div>
-            <label for="qtdProduto">Quantidade:</label>
-            <input type="number" id="qtdProduto" value="1" min="1">
-          </div>
-          <div>
-            <label for="dataVencimento">Vencimento:</label>
-            <input type="date" id="dataVencimento">
-          </div>
+          <div><label for="qtdProduto">Quantidade:</label><input type="number" id="qtdProduto" value="1" min="1"></div>
+          <div><label for="dataVencimento">Vencimento:</label><input type="date" id="dataVencimento"></div>
         </div>
-
-        <button class="btn-primary" onclick="cadastrarProduto()">Salvar Produto</button>
+        <button class="btn-primary" onclick="cadastrarProduto()">Salvar produto no estoque</button>
       </section>
 
-      <!-- Lista do Estoque -->
       <section class="card">
-        <h3>Produtos em Estoque</h3>
-        <div id="listaEstoque" class="lista-box">
-          <p class="muted">Nenhum produto cadastrado.</p>
-        </div>
+        <h3>Produtos em estoque</h3>
+        <div id="listaEstoque" class="lista-box"><p class="muted">Nenhum produto cadastrado no estoque.</p></div>
+        <div class="button-row"><button class="btn-light" onclick="imprimirRelatorioEstoque()">Imprimir lista</button><button class="btn-relatorio" onclick="gerarRelatorio(7)">Próximos 7 dias</button></div>
       </section>
 
-      <!-- Relatórios Rápidos -->
       <section class="card">
-        <h3>Relatório para WhatsApp</h3>
-        <p class="sub-label">Gere o resumo das mercadorias que precisam de atenção:</p>
-        
+        <h3>Vendas fiadas</h3>
+        <p class="sub-label">Registre a compra e a data combinada para pagamento.</p>
         <div class="grid-2">
-          <button class="btn-relatorio" onclick="gerarRelatorio(7)">Próximos 7 dias</button>
-          <button class="btn-relatorio" onclick="gerarRelatorio(30)">Próximos 30 dias</button>
+          <div><label for="clienteNome">Nome do cliente:</label><input id="clienteNome" placeholder="Nome completo"></div>
+          <div><label for="clienteTelefone">WhatsApp:</label><input id="clienteTelefone" inputmode="tel" placeholder="(00) 00000-0000"></div>
         </div>
+        <label for="fiadoItens">Produtos e valores:</label>
+        <textarea id="fiadoItens" rows="3" placeholder="Ex.: Arroz 5 kg - R$ 30,00&#10;Feijão - R$ 9,00"></textarea>
+        <div class="grid-2">
+          <div><label for="fiadoTotal">Valor total:</label><input id="fiadoTotal" inputmode="decimal" placeholder="R$ 0,00"></div>
+          <div><label for="fiadoVencimento">Pagamento combinado:</label><input type="date" id="fiadoVencimento"></div>
+        </div>
+        <button class="btn-primary" onclick="cadastrarFiado()">Guardar venda fiada</button>
       </section>
 
-      <!-- Glossário Obrigatório -->
+      <section class="card">
+        <h3>Contas dos clientes</h3>
+        <div class="grid-2"><button class="btn-relatorio" onclick="mostrarContas('todas')">Todas as contas</button><button class="btn-relatorio" onclick="mostrarContas('pendentes')">Contas pendentes</button></div>
+        <div id="listaFiados" class="lista-box"><p class="muted">Nenhuma venda fiada cadastrada.</p></div>
+      </section>
+
+      <section class="card">
+        <h3>Relatório de compras do cliente</h3>
+        <p class="sub-label">Veja o que a pessoa comprou em um período.</p>
+        <div class="input-row"><input id="buscaCliente" placeholder="Digite o nome do cliente"><button class="btn-secondary compact" onclick="mostrarHistorico()">Ver histórico</button></div>
+        <div id="historicoCliente" class="lista-box"></div>
+      </section>
+
+      <section class="card">
+        <h3>Relatórios para WhatsApp</h3>
+        <p class="sub-label">Prepare um resumo e confira antes de enviar.</p>
+        <div class="grid-2"><button class="btn-relatorio" onclick="gerarRelatorio(7)">Validades em 7 dias</button><button class="btn-relatorio" onclick="gerarRelatorioFiados()">Contas pendentes</button></div>
+      </section>
+
       <details class="card" open>
         <summary><b>Como usar & Glossário simples</b></summary>
         <div class="help-section">
-          <h4>Como usar:</h4>
-          <ol>
-            <li><b>Cadastre o lote:</b> Digite/bipe o nome da mercadoria, a quantidade na prateleira e a data de validade que está na embalagem.</li>
-            <li><b>Observe os alertas de cor:</b>
-              <ul>
-                <li>🔴 <b>Vermelho:</b> Produto já vencido ou que vence nos próximos 3 dias. Faça promoção rápida!</li>
-                <li>🟡 <b>Amarelo:</b> Vence nos próximos 7 dias. Fique atento.</li>
-                <li>🟢 <b>Verde:</b> Validade tranquila.</li>
-              </ul>
-            </li>
-            <li><b>Gere relatórios:</b> Clique no botão de relatório para enviar a lista de prioridades no WhatsApp do seu sócio ou equipe.</li>
-          </ol>
-
+          <h4>Como usar</h4>
+          <ol><li>Escaneie o produto, escreva o nome se for novo e informe a quantidade e o vencimento.</li><li>Para uma venda fiada, informe o cliente, os produtos, o valor e o dia combinado.</li><li>Confira a mensagem antes de enviar pelo WhatsApp.</li></ol>
           <hr>
-
-          <h4>Glossário (Gestão de Prateleira):</h4>
+          <h4>Glossário</h4>
           <ul>
-            <li><b>Controle de Estoque:</b> Acompanhamento da quantidade de produtos guardados ou expostos à venda.</li>
-            <li><b>Primeiro que Vence, Primeiro que Sai (PVPS):</b> A regra de colocar na frente da prateleira os produtos que vão vencer antes para serem vendidos primeiro.</li>
-            <li><b>Margem de Perda:</b> O prejuízo financeiro quando um alimento estraga e precisa ser descartado.</li>
-            <li><b>Relatório Diário/Semanal:</b> Um resumo rápido que mostra o que precisa ser vendido com urgência naquele dia ou semana.</li>
+            <li><b>Controle de estoque:</b> acompanhamento dos produtos guardados ou expostos para venda.</li>
+            <li><b>PVPS:</b> primeiro que vence, primeiro que sai. Coloque na frente o que vence antes.</li>
+            <li><b>Cópia de segurança:</b> uma segunda cópia dos seus dados. Ajuda a recuperar as informações se o celular for perdido, quebrar ou tiver os dados apagados.</li>
+            <li><b>Venda fiada:</b> quando o cliente leva o produto e combina pagar depois.</li>
+            <li><b>Valor em aberto:</b> dinheiro que ainda falta o cliente pagar.</li>
+            <li><b>Pagamento parcial:</b> quando o cliente paga apenas uma parte da conta.</li>
+            <li><b>Histórico de compras:</b> lista dos produtos comprados por um cliente em determinado período.</li>
+            <li><b>Recibo:</b> resumo da compra, com produtos, valores e data de pagamento.</li>
+            <li><b>Imprimir:</b> fazer uma cópia do relatório em papel.</li>
           </ul>
         </div>
       </details>
